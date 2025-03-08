@@ -1,6 +1,6 @@
 use super::proto::{
-    CheckAffiliation, CheckAuthor, CheckCitation, CheckPubBase, CheckRequest,
-    CheckResponse, ParseRequest, ResearchParserServiceClient,
+    CheckAffiliation, CheckAuthor, CheckCitation, CheckPubBase, CheckRequest, CheckResponse,
+    ParseRequest, ResearchParserServiceClient,
 };
 use crate::db::Retraction;
 use crate::schema::retraction::dsl::*;

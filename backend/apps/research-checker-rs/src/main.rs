@@ -1,11 +1,8 @@
 mod db;
 mod research_checker_service;
 pub mod schema;
-use std::{
-    net::{SocketAddr, ToSocketAddrs},
-};
+use std::net::{SocketAddr, ToSocketAddrs};
 
-use config::builder::AsyncState;
 use poem::{endpoint::BoxEndpoint, listener::TcpListener, IntoEndpoint, Response};
 use poem_grpc::{RouteGrpc, Service};
 use serde::{Deserialize, Serialize};
@@ -13,84 +10,14 @@ use serde::{Deserialize, Serialize};
 #[tokio::main]
 async fn main() -> Result<(), String> {
     #[cfg(feature = "dotenv")]
-    if let Err(e) = dotenv::dotenv() {
+    if let Err(_) = dotenv::dotenv() {
         eprintln!("Unable to load env");
     } else {
         println!("Loaded env");
     }
 
     #[cfg(feature = "parse_retraction_table")]
-    {
-        let file = std::fs::File::open("retraction_watch.csv").unwrap();
-        let mut rdr = csv::Reader::from_reader(file);
-        let mut of = true;
-
-        for record in rdr.records() {
-            if let Ok(r) = record {
-                //Record ID,Title,Subject,Institution,Journal,Publisher,Country,Author,URLS,
-                //ArticleType,RetractionDate,RetractionDOI,RetractionPubMedID,OriginalPaperDate,
-                //OriginalPaperDOI,OriginalPaperPubMedID,RetractionNature,Reason,Paywalled,Notes
-                let idd = r.get(0);
-                let titlee = r.get(1);
-                let institution = r.get(3);
-                let mut ins_vector = vec![];
-                if let Some(a) = institution {
-                    let av: Vec<String> = a.split(";").map(|f| f.to_string()).collect();
-                    ins_vector = av.into_iter().filter(|p| !p.is_empty()).collect();
-                }
-
-                let journall = r.get(4);
-
-                let authorss = r.get(7);
-                let mut authors_vector = vec![];
-                if let Some(a) = authorss {
-                    let av: Vec<String> = a.split(";").map(|f| f.to_string()).collect();
-                    authors_vector = av;
-                }
-                let doii = r.get(11);
-                let pubmed_idd = r.get(12);
-                let reasons = r.get(17);
-                let mut reasons_vector = vec![];
-                if let Some(a) = reasons {
-                    let av: Vec<String> = a
-                        .split(";")
-                        .map(|f| f.replace("+", "").to_string())
-                        .collect();
-                    reasons_vector = av.into_iter().filter(|p| !p.is_empty()).collect();
-                }
-
-                let retractionn = Retraction {
-                    id: idd.unwrap().parse().unwrap(),
-                    title: titlee.map(|f| f.to_string()),
-                    journal: journall.map(|f| f.to_string()),
-                    link: None,
-                    doi: doii.map(|f| f.to_string()),
-                    pubmed_id: pubmed_idd.map(|f| f.to_string()),
-                    affiliations: ins_vector.iter().map(|a| Some(a.clone())).collect(),
-                    countries: vec![],
-                    authors: authors_vector.iter().map(|a| Some(a.clone())).collect(),
-                    issues: reasons_vector.iter().map(|a| Some(a.clone())).collect(),
-                };
-
-                diesel::insert_into(schema::retraction::table)
-                    .values(retractionn)
-                    .returning(Retraction::as_returning())
-                    .get_result(&mut pg_connection)
-                    .expect("a");
-            }
-        }
-    }
-
-    let config_builder = config::ConfigBuilder::<AsyncState>::default();
-    let config_builded = config_builder
-        .add_source(
-            config::Environment::with_prefix(&"name".to_uppercase())
-                .separator("__")
-                .prefix_separator("_"),
-        )
-        .build()
-        .await
-        .unwrap();
+    parse_retraction_table().await?;
 
     let mut server = GrpcServer {
         router: Some(RouteGrpc::new()),
@@ -107,6 +34,70 @@ async fn main() -> Result<(), String> {
     );
 
     server.run().await
+}
+
+#[cfg(feature = "parse_retraction_table")]
+async fn parse_retraction_table() -> Result<(), String> {
+    let file = std::fs::File::open("retraction_watch.csv").unwrap();
+    let mut rdr = csv::Reader::from_reader(file);
+
+    for record in rdr.records() {
+        if let Ok(r) = record {
+            let retraction = create_retraction_from_record(&r)?;
+            diesel::insert_into(schema::retraction::table)
+                .values(retraction)
+                .returning(Retraction::as_returning())
+                .get_result(&mut pg_connection)
+                .expect("a");
+        }
+    }
+    Ok(())
+}
+
+#[cfg(feature = "parse_retraction_table")]
+fn create_retraction_from_record(record: &csv::StringRecord) -> Result<Retraction, String> {
+    let idd = record.get(0).unwrap().parse().unwrap();
+    let titlee = record.get(1).map(|f| f.to_string());
+    let institution = record.get(3);
+    let ins_vector = institution
+        .map(|a| a.split(";").map(|f| f.to_string()).collect::<Vec<_>>())
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|p| !p.is_empty())
+        .collect::<Vec<_>>();
+
+    let journall = record.get(4).map(|f| f.to_string());
+    let authorss = record.get(7);
+    let authors_vector = authorss
+        .map(|a| a.split(";").map(|f| f.to_string()).collect::<Vec<_>>())
+        .unwrap_or_default();
+
+    let doii = record.get(11).map(|f| f.to_string());
+    let pubmed_idd = record.get(12).map(|f| f.to_string());
+    let reasons = record.get(17);
+    let reasons_vector = reasons
+        .map(|a| {
+            a.split(";")
+                .map(|f| f.replace("+", "").to_string())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|p| !p.is_empty())
+        .collect::<Vec<_>>();
+
+    Ok(Retraction {
+        id: idd,
+        title: titlee,
+        journal: journall,
+        link: None,
+        doi: doii,
+        pubmed_id: pubmed_idd,
+        affiliations: ins_vector.iter().map(|a| Some(a.clone())).collect(),
+        countries: vec![],
+        authors: authors_vector.iter().map(|a| Some(a.clone())).collect(),
+        issues: reasons_vector.iter().map(|a| Some(a.clone())).collect(),
+    })
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
