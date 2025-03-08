@@ -1,0 +1,59 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""Check """
+type CheckedAuthor {
+  name: String!
+  id: String!
+  retractedArticles: [RetractedArticle!]!
+}
+
+"""Check """
+type CheckedAffiliation {
+  name: String!
+  retractedArticles: [RetractedArticle!]!
+}
+
+"""Check """
+type CheckedCitation {
+  name: String!
+  doi: String!
+  pubmedId: String
+  retracted: Boolean!
+}
+
+"""Check """
+type CheckedFunding {
+  name: String!
+  retractedArticles: [RetractedArticle!]!
+}
+
+"""Check """
+type CheckedPubBase {
+  name: String!
+  retractedArticles: [RetractedArticle!]!
+}
+
+"""Check """
+type RetractedArticle {
+  name: String!
+  doi: String!
+  pubmedId: String
+}
+
+"""Check """
+type CheckedResearch {
+  name: String!
+  authors: [CheckedAuthor!]!
+  affiliations: [CheckedAffiliation!]!
+  citations: [CheckedCitation!]!
+  fundings: [CheckedFunding!]!
+  pubBase: CheckedPubBase!
+  doi: String!
+  pubmedId: String
+}
+
+type Query {
+  checkResearch(url: String!): CheckedResearch!
+}

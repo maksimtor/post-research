@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package research_checker;
+
+service ResearchCheckerService {
+    rpc Check (CheckRequest) returns (CheckResponse) {}
+}
+
+message CheckRequest {
+    string url = 1;
+}
+
+message CheckResponse {
+    string name = 1;
+    repeated CheckAuthor authors = 2;
+    repeated CheckAffiliation affiliations = 3;
+    repeated CheckCitation citations = 4;
+    repeated CheckFunding fundings = 5;
+    CheckPubBase pub_base = 6;
+    string doi = 7;
+    optional string pubmed_id = 8;
+}
+
+message CheckAuthor {
+    string name = 1;
+    string id = 2;
+    repeated RetractedArticle retracted_articles = 3;
+}
+
+message CheckAffiliation {
+    string name = 1;
+    repeated RetractedArticle retracted_articles = 2;
+}
+
+message CheckCitation {
+    string name = 1;
+    string doi = 2;
+    optional string pubmed_id = 3;
+    bool retracted = 4;
+}
+
+message CheckFunding {
+    string name = 1;
+    repeated RetractedArticle retracted_articles = 2;
+}
+
+message CheckPubBase {
+    string name = 1;
+    repeated RetractedArticle retracted_articles = 2;
+}
+
+message RetractedArticle {
+    string name = 1;
+    string doi = 2;
+    optional string pubmed_id = 3;
+}

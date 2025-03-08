@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package research_parser;
+
+service ResearchParserService {
+    rpc Parse (ParseRequest) returns (ParseResponse) {}
+}
+
+message ParseRequest {
+    string url = 1;
+}
+
+message ParseResponse {
+    string name = 1;
+    repeated Author authors = 2;
+    repeated Affiliation affiliations = 3;
+    repeated Citation citations = 4;
+    repeated Funding fundings = 5;
+    PubBase pub_base = 6;
+    string doi = 7;
+    optional string pubmed_id = 8;
+}
+
+message Author {
+    string name = 1;
+    string id = 2;
+}
+
+message Affiliation {
+    string name = 1;
+}
+
+message Citation {
+    string name = 1;
+    string doi = 2;
+    optional string pubmed_id = 3;
+}
+
+message Funding {
+    string name = 1;
+}
+
+message PubBase {
+    string name = 1;
+}

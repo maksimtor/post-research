@@ -1,0 +1,8 @@
+[workspace]
+resolver = "2"
+members = ['backend/apps/research-checker-rs']
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
