@@ -9,24 +9,24 @@ import { ResearchCheckerServiceClient } from './dto/research_checker.client';
 import { GrpcTransport } from '@protobuf-ts/grpc-transport';
 import { ChannelCredentials } from '@grpc/grpc-js';
 
-@Resolver(of => CheckedResearch)
+@Resolver(() => CheckedResearch)
 export class CheckerResolver {
   constructor(private readonly recipesService: ResearchCheckerServiceClient) {}
 
-  @Query(returns => CheckedResearch)
+  @Query(() => CheckedResearch)
   async checkResearch(@Args('url') url: string): Promise<CheckedResearch> {
     const transport = new GrpcTransport({
       host: 'localhost:3001',
       channelCredentials: ChannelCredentials.createInsecure(),
     });
+
     const client = new ResearchCheckerServiceClient(transport);
-    console.log('wazap');
     const recipe = await client.check({ url: url });
-    console.log('wazap2');
-    console.log(recipe);
+
     if (!recipe) {
       throw new NotFoundException(url);
     }
+
     return {
       name: recipe.response.name,
       authors: recipe.response.authors,
