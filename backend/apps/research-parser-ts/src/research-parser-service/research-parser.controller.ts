@@ -36,46 +36,64 @@ export class ResearchParserController implements OnModuleInit {
     const affiliationsHtml = dom.window.document.getElementsByClassName('affiliations')[0].getElementsByTagName('li');
     const citationsHtml = dom.window.document.getElementsByClassName('refs-list')[0].getElementsByClassName('skip-numbering');
 
-    for (const citationHtml of citationsHtml) {
-      let doi = '';
-      let pubmedId = '';
+    // from here
+    try {
+      for (const citationHtml of citationsHtml) {
+        let doi = '';
+        let pubmedId = '';
+  
+        for (const lin of citationHtml.getElementsByTagName('a')) {
+          if (lin.textContent.trim() === 'PubMed') {
+            pubmedId = lin.getAttribute('data-ga-action');
+          } else {
+            doi = lin.getAttribute('data-ga-action');
+          }
+        }
+  
+        citations.push({
+          name: citationHtml.textContent.trim().split('\n')[0],
+          doi: doi,
+          pubmedId: pubmedId,
+        });
+      }
+    } catch (e) {
+      console.log(e);
+    }
 
-      for (const lin of citationHtml.getElementsByTagName('a')) {
-        if (lin.textContent.trim() === 'PubMed') {
-          pubmedId = lin.getAttribute('data-ga-action');
-        } else {
-          doi = lin.getAttribute('data-ga-action');
+    try {
+      for (const affHtml of affiliationsHtml) {
+        affiliations.push({
+          name: affHtml.textContent.split(' ').slice(1).join(' '),
+        });
+      } 
+    } catch (e) {
+      console.log(e);
+    }
+
+    try {
+      const grantsHtml = dom.window.document.getElementsByClassName('grants-list')[0].getElementsByTagName('a');
+      for (const grantHtml of grantsHtml) {
+        const f = grantHtml.title.split('/');
+        fundings.push({ name: f[1] });
+      }
+    } catch (e) {
+      console.log(e);
+    }
+
+    try {
+      if (authorsHtml.length > 0) {
+        const parsedAuthors = authorsHtml[0];
+        const names = parsedAuthors.getElementsByClassName('full-name');
+  
+        for (const name of names) {
+          authors.push({ name: name.textContent, id: 'undefined' });
         }
       }
-
-      citations.push({
-        name: citationHtml.textContent.trim().split('\n')[0],
-        doi: doi,
-        pubmedId: pubmedId,
-      });
+    } catch (e) {
+      console.log(e);
     }
 
-    for (const affHtml of affiliationsHtml) {
-      affiliations.push({
-        name: affHtml.textContent.split(' ').slice(1).join(' '),
-      });
-    }
-
-    const grantsHtml = dom.window.document.getElementsByClassName('grants-list')[0].getElementsByTagName('a');
-    for (const grantHtml of grantsHtml) {
-      const f = grantHtml.title.split('/');
-      fundings.push({ name: f[1] });
-    }
-
-    if (authorsHtml.length > 0) {
-      const parsedAuthors = authorsHtml[0];
-      const names = parsedAuthors.getElementsByClassName('full-name');
-
-      for (const name of names) {
-        authors.push({ name: name.textContent, id: 'undefined' });
-      }
-    }
-
+    // to here
     return {
       pubBase: { name: pubBase },
       name: headlineHtml.trim(),

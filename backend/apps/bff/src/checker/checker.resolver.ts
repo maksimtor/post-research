@@ -15,6 +15,7 @@ export class CheckerResolver {
 
   @Query(() => CheckedResearch)
   async checkResearch(@Args('url') url: string): Promise<CheckedResearch> {
+    console.log('Checking research for url:', url);
     const transport = new GrpcTransport({
       host: 'localhost:3001',
       channelCredentials: ChannelCredentials.createInsecure(),
